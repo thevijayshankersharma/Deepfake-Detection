@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Security Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Security Dashboard</h1>
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.total_alerts }}</span>
+                <span class="stat-label">Total Alerts</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.critical_alerts }}</span>
+                <span class="stat-label">Critical</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.pending_alerts }}</span>
+                <span class="stat-label">Pending</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-filters">
+        <div class="filter-group">
+            <label for="severity-filter">Severity:</label>
+            <select id="severity-filter" class="filter-select">
+                <option value="all">All</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="status-filter">Status:</label>
+            <select id="status-filter" class="filter-select">
+                <option value="all">All</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="dismissed">Dismissed</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="type-filter">Type:</label>
+            <select id="type-filter" class="filter-select">
+                <option value="all">All</option>
+                <option value="phishing">Phishing</option>
+                <option value="deepfake">Deepfake</option>
+                <option value="suspicious_activity">Suspicious Activity</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="alerts-container">
+        {% for alert in alerts %}
+        <div class="alert-card {{ alert.severity.lower() }}" data-severity="{{ alert.severity.lower() }}" data-status="{{ alert.status }}" data-type="{{ alert.alert_type }}">
+            <div class="alert-header">
+                <span class="alert-severity {{ alert.severity.lower() }}">{{ alert.severity }}</span>
+                <span class="alert-status {{ alert.status }}">{{ alert.status|title }}</span>
+                <span class="alert-timestamp">{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+            </div>
+            <div class="alert-content">
+                <h3 class="alert-title">{{ alert.title }}</h3>
+                <p class="alert-description">{{ alert.description }}</p>
+                <div class="alert-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Type:</span>
+                        <span class="detail-value">{{ alert.alert_type|title }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Source:</span>
+                        <span class="detail-value">{{ alert.source }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Confidence:</span>
+                        <span class="detail-value">{{ "%.1f"|format(alert.confidence * 100) }}%</span>
+                    </div>
+                </div>
+                {% if alert.evidence %}
+                <div class="alert-evidence">
+                    <h4>Evidence:</h4>
+                    <pre>{{ alert.evidence }}</pre>
+                </div>
+                {% endif %}
+            </div>
+            <div class="alert-actions">
+                <button class="btn-action resolve" onclick="updateAlertStatus('{{ alert.id }}', 'resolved')">Resolve</button>
+                <button class="btn-action dismiss" onclick="updateAlertStatus('{{ alert.id }}', 'dismissed')">Dismiss</button>
+                <button class="btn-action investigate" onclick="investigateAlert('{{ alert.id }}')">Investigate</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-header h1 {
+        color: #64ffda;
+        margin-bottom: 1.5rem;
+    }
+
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: #111d2f;
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid rgba(100, 255, 218, 0.1);
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #64ffda;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #8892b0;
+        font-size: 1rem;
+    }
+
+    .dashboard-filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #8892b0;
+    }
+
+    .filter-select {
+        width: 100%;
+        padding: 0.75rem;
+        background: #111d2f;
+        border: 1px solid rgba(100, 255, 218, 0.1);
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #64ffda;
+    }
+
+    .alerts-container {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .alert-card {
+        background: #111d2f;
+        border-radius: 8px;
+        border: 1px solid rgba(100, 255, 218, 0.1);
+        overflow: hidden;
+    }
+
+    .alert-header {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+    }
+
+    .alert-severity {
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
+
+    .alert-severity.critical {
+        background: #dc3545;
+        color: white;
+    }
+
+    .alert-severity.high {
+        background: #ffc107;
+        color: black;
+    }
+
+    .alert-severity.medium {
+        background: #fd7e14;
+        color: white;
+    }
+
+    .alert-severity.low {
+        background: #28a745;
+        color: white;
+    }
+
+    .alert-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    .alert-status.new {
+        background: #007bff;
+        color: white;
+    }
+
+    .alert-status.in_progress {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .alert-status.resolved {
+        background: #28a745;
+        color: white;
+    }
+
+    .alert-status.dismissed {
+        background: #6c757d;
+        color: white;
+    }
+
+    .alert-timestamp {
+        color: #8892b0;
+        font-size: 0.875rem;
+    }
+
+    .alert-content {
+        padding: 1.5rem;
+    }
+
+    .alert-title {
+        color: #fff;
+        margin: 0 0 1rem 0;
+        font-size: 1.25rem;
+    }
+
+    .alert-description {
+        color: #8892b0;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .alert-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-item {
+        background: rgba(100, 255, 218, 0.1);
+        padding: 0.75rem;
+        border-radius: 4px;
+    }
+
+    .detail-label {
+        display: block;
+        color: #64ffda;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .detail-value {
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .alert-evidence {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1rem;
+        border-radius: 4px;
+        margin-top: 1rem;
+    }
+
+    .alert-evidence h4 {
+        color: #64ffda;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .alert-evidence pre {
+        color: #8892b0;
+        margin: 0;
+        white-space: pre-wrap;
+        font-size: 0.875rem;
+    }
+
+    .alert-actions {
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+        border-top: 1px solid rgba(100, 255, 218, 0.1);
+    }
+
+    .btn-action {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action.resolve {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-action.dismiss {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-action.investigate {
+        background: #64ffda;
+        color: #111d2f;
+    }
+
+    .btn-action:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+
+        .dashboard-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .alert-header {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .alert-actions {
+            flex-direction: column;
+        }
+
+        .btn-action {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const severityFilter = document.getElementById('severity-filter');
+        const statusFilter = document.getElementById('status-filter');
+        const typeFilter = document.getElementById('type-filter');
+        const alertCards = document.querySelectorAll('.alert-card');
+
+        function filterAlerts() {
+            const severity = severityFilter.value;
+            const status = statusFilter.value;
+            const type = typeFilter.value;
+
+            alertCards.forEach(card => {
+                const cardSeverity = card.dataset.severity;
+                const cardStatus = card.dataset.status;
+                const cardType = card.dataset.type;
+
+                const severityMatch = severity === 'all' || cardSeverity === severity;
+                const statusMatch = status === 'all' || cardStatus === status;
+                const typeMatch = type === 'all' || cardType === type;
+
+                card.style.display = severityMatch && statusMatch && typeMatch ? 'block' : 'none';
+            });
+        }
+
+        severityFilter.addEventListener('change', filterAlerts);
+        statusFilter.addEventListener('change', filterAlerts);
+        typeFilter.addEventListener('change', filterAlerts);
+    });
+
+    function updateAlertStatus(alertId, status) {
+        // Show loading state
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Updating...';
+        button.disabled = true;
+
+        fetch(`/api/alerts/${alertId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alertCard = button.closest('.alert-card');
+                alertCard.style.opacity = '0.5';
+                alertCard.style.transition = 'opacity 0.3s ease';
+                
+                // Reload after a short delay
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            } else {
+                throw new Error(data.error || 'Failed to update alert status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Restore button state
+            button.textContent = originalText;
+            button.disabled = false;
+            // Show error message
+            alert(`Error updating alert status: ${error.message}`);
+        });
+    }
+
+    function investigateAlert(alertId) {
+        window.location.href = `/investigate/${alertId}`;
+    }
+</script>
+{% endblock %} 

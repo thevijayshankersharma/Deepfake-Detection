@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Phishing Detection{% endblock %}
+
+{% block content %}
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card">
+        <h2>Phishing Detection</h2>
+        <form method="POST" action="{{ url_for('detect_phishing_route') }}">
+            <div class="form-group">
+                <label for="content_type">Content Type:</label>
+                <select name="content_type" id="content_type" class="form-control">
+                    <option value="url">URL</option>
+                    <option value="email">Email Content</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="content">Content to Analyze:</label>
+                <textarea name="content" id="content" rows="10" class="form-control" required placeholder="Enter URL or email content to analyze..."></textarea>
+            </div>
+            <button type="submit" class="btn">Analyze</button>
+        </form>
+    </div>
+
+    {% if results %}
+        <div class="card">
+            <h3>Analysis Results</h3>
+            <div class="alert {% if results.is_phishing %}alert-danger{% else %}alert-success{% endif %}">
+                <strong>Result:</strong> {{ "Phishing Detected" if results.is_phishing else "No Phishing Detected" }}
+            </div>
+            <div class="risk-level">
+                <strong>Risk Level:</strong> 
+                <span class="risk-badge {{ results.risk_level.lower() }}">
+                    {{ results.risk_level }}
+                </span>
+            </div>
+            <div class="confidence-level">
+                <strong>Confidence:</strong>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: {{ (results.confidence * 100)|round|int }}%">
+                        {{ (results.confidence * 100)|round|int }}%
+                    </div>
+                </div>
+            </div>
+            
+            {% if results.warnings %}
+                <div class="warnings-section">
+                    <h4>Warnings:</h4>
+                    <ul class="warnings-list">
+                        {% for warning in results.warnings %}
+                            <li>{{ warning }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if results.details %}
+                <div class="details-section">
+                    <h4>Details:</h4>
+                    <ul class="details-list">
+                        {% for key, value in results.details.items() %}
+                            <li><strong>{{ key|title }}:</strong> {{ value }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-control {
+        margin-top: 0.5rem;
+    }
+    .btn {
+        margin-top: 1rem;
+        width: 100%;
+    }
+    .alert {
+        margin-bottom: 1.5rem;
+    }
+    .card {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #1a1a1a;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h2, h3, h4 {
+        margin-bottom: 1rem;
+        color: #64ffda;
+    }
+    .risk-level {
+        margin: 1rem 0;
+        padding: 0.5rem;
+        background: rgba(100, 255, 218, 0.1);
+        border-radius: 4px;
+    }
+    .risk-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-left: 0.5rem;
+    }
+    .risk-badge.high {
+        background: #dc3545;
+        color: white;
+    }
+    .risk-badge.medium {
+        background: #ffc107;
+        color: black;
+    }
+    .risk-badge.low {
+        background: #28a745;
+        color: white;
+    }
+    .confidence-level {
+        margin: 1rem 0;
+    }
+    .confidence-bar {
+        width: 100%;
+        height: 24px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+    .confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #64ffda, #4cd6b3);
+        color: #1a1a1a;
+        text-align: center;
+        line-height: 24px;
+        font-weight: bold;
+        transition: width 0.3s ease;
+    }
+    .warnings-list, .details-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .warnings-list li, .details-list li {
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        background: rgba(255,255,255,0.05);
+        border-radius: 4px;
+    }
+    .warnings-section, .details-section {
+        margin-top: 1.5rem;
+    }
+    .test-mode-info {
+        margin: 1rem 0;
+        padding: 1rem;
+        background: rgba(100, 255, 218, 0.1);
+        border-radius: 4px;
+    }
+    .test-mode-info code {
+        background: rgba(0,0,0,0.2);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+    .test-mode-info ul {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+</style>
+{% endblock %} 

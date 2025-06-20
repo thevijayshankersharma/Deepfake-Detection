@@ -1,0 +1,51 @@
+# Ignore model files
+model/
+
+# Ignore virtual environments
+venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*.ipynb
+
+# Uploaded files
+Uploaded_Files/
+
+# Ignore video files
+*.mp4
+
+# Ignore static frames (images)
+static/frames/
+
+# Database files
+instance/
+users.db
+
+# Logs and temporary files
+*.log
+temp_uploads/
+
+# Python environment folders
+.env
+.venv
+
+# Other common ignores
+*.pyc
+*.pyo
+*.pyd
+
+# Wheel files
+*.whl
+
+# VSCode settings
+.vscode/
+
+# Mac system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
