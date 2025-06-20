@@ -144,7 +144,7 @@ def logout():
     logout_user()
     return redirect(url_for('homepage'))
 
-def generate_confidence_graph(confidence):
+def generate_confidence_graph(confidence, prediction_label):
     try:
         plt.figure(figsize=(10, 10))
         plt.style.use('dark_background')
@@ -154,9 +154,13 @@ def generate_confidence_graph(confidence):
 
         colors = [real_cmap(0.6), fake_cmap(0.9)]
 
-        sizes = [confidence, 100 - confidence]
+        if prediction_label == 'REAL':
+            sizes = [confidence, 100 - confidence]
+        else:  # FAKE
+            sizes = [100 - confidence, confidence]
+
         labels = ['Real', 'Fake']
-        explode = (0, 0.1)
+        explode = (0, 0.1)  # Explode the 'Fake' slice
 
         wedges, texts, autotexts = plt.pie(sizes,
                                           explode=explode,
@@ -296,7 +300,7 @@ class ViTModel(nn.Module):
         x = self.vit(x).logits
         return None, x #fmap, logits
 
-def extract_frames(video_path, num_frames=8):
+def extract_frames(video_path, num_frames=32):
     frames = []
     frame_paths = []
     unique_id = str(uuid.uuid4()).split('-')[0]
@@ -423,7 +427,8 @@ def detectFakeVideo(videoPath):
         ])
 
         path_to_videos = [videoPath]
-        video_dataset = validation_dataset(path_to_videos, sequence_length=8, transform=transform)
+        # Increased sequence_length from 8 to 32 to ensure the model analyzes more frames.
+        video_dataset = validation_dataset(path_to_videos, sequence_length=32, transform=transform)
         frames = video_dataset[0]  # Get the tensor of frames
         if frames.shape[0] == 0:
             raise Exception("No frames could be extracted from the video")
@@ -515,7 +520,7 @@ def detect():
 
             logger.info(f"Video prediction: {output} with confidence {confidence}%")
 
-            confidence_image = generate_confidence_graph(confidence)
+            confidence_image = generate_confidence_graph(confidence, output)
             if not confidence_image:
                 raise Exception("Failed to generate confidence graph")
 
@@ -965,4 +970,5 @@ def detect_phishing(content, content_type):
 
 if __name__ == '__main__':
     app.run(port=3000, debug=True)
+
 
